@@ -23,7 +23,7 @@ Simple Shell is a basic UNIX shell implementation written in C programming langu
 
 To compile the shell:
 ```
-gcc -o simple_shell main.c
+gcc -o simple_shell SimpleShell.c
 ```
 
 ### Running the Shell
