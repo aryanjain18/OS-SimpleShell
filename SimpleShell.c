@@ -294,42 +294,48 @@ int execute_piped_commands(char *cmd) {
     return 1;
 }
 
-// Signal handler for Ctrl+C
+// Signal handler for Ctrl+C (SIGINT). 
+// Displays the history and exits the shell.
 void sigint_handler(int signo) {
-    printf("\n Exiting the shell...........\n");
+    printf("\n Exiting the Shell...\n");
     display_history();
     exit(0);
 }
 
 // Setup signal handler for Ctrl+C
-void setup_signal_handler()
-{
-    struct sigaction sa;
-    sa.sa_handler = sigint_handler;
-    sa.sa_flags = 0;
-    if (sigemptyset(&sa.sa_mask) == -1)
-    {
+// Initialize / Sets up the signal handler for Ctrl+C to call sigint_handler.
+void setup_signal_handler() {
+    struct sigaction sa; // The sigaction structure is used to specify how to handle a signal. It includes information about the signal handling function and any flags that control the behavior of the signal.
+    sa.sa_handler = sigint_handler; // The sigint_handler function will be called when the SIGINT signal is received.
+    sa.sa_flags = 0; // This means no special options or flags are set for the signal handler.
+
+    /*This block of code initializes the signal set sa.sa_mask to be empty using the sigemptyset function. 
+    This means that no signals will be blocked during the execution of the signal handler. 
+    If sigemptyset returns -1, it indicates an error. In that case, perror prints an error message, 
+    and the program exits with EXIT_FAILURE.*/
+    if (sigemptyset(&sa.sa_mask) == -1) {
         perror("sigemptyset error");
         exit(EXIT_FAILURE);
     }
-    if (sigaction(SIGINT, &sa, NULL) == -1)
-    {
+    
+    /* This block sets the action to be taken when the SIGINT signal is received using the sigaction function. 
+    The first argument SIGINT specifies the signal to be handled. The second argument is a pointer to the sa structure, 
+    which contains the details of the signal handler. The third argument is NULL, meaning we are not interested in the old action and don't want to save it. 
+    If sigaction returns -1, it indicates an error. In that case, perror prints an error message, and the program exits with EXIT_FAILURE.*/
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
         perror("sigaction error");
         exit(EXIT_FAILURE);
     }
 }
 
-// Main shell loop
-void shell_loop()
-{
+// Main Shell Loop - Reads input, checks for pipes, and calls appropriate functions to Execute Commands.
+void shell_loop() {
     int status;
     char input[MAX_SIZE];
 
-    do
-    {
-        printf("aryan_parth@simpleShell:~$ ");
-        if (fgets(input, sizeof(input), stdin) == NULL)
-        {
+    do {
+        printf("aryan_parth@simpleShell:~$ "); // Branding - Jaatify ; )
+        if (fgets(input, sizeof(input), stdin) == NULL) {
             perror("fgets error");
             exit(EXIT_FAILURE);
         }
@@ -337,32 +343,27 @@ void shell_loop()
 
         // Check for piping operator
         char *pipe_ptr = strchr(input, '|');
-        if (pipe_ptr != NULL)
-        {
+        if (pipe_ptr != NULL) {
             status = execute_piped_commands(input);
         }
-        else
-        {
+        else {
             status = launch(input);
         }
     } while (status);
 }
 
-// Function to launch a command
-int launch(char *cmd)
-{
-    if (strcmp(cmd, "history") == 0)
-    {
+// Function to launch a command - Executes a command or special built-in commands (history, exit). 
+// Handles background commands denoted by &.
+int launch(char *cmd) {
+    if (strcmp(cmd, "history") == 0) {
         display_history();
     }
-    else if (strcmp(cmd, "exit") == 0)
-    {
+    else if (strcmp(cmd, "exit") == 0) {
         display_history();
         printf("\nShell ended successfully!\n");
         return 0;
     }
-    else if (strstr(cmd, "&") != NULL)
-    {
+    else if (strstr(cmd, "&") != NULL) {
         char cmd_copy[MAX_SIZE];
         strncpy(cmd_copy, cmd, sizeof(cmd_copy)); // Create a copy of the original command
 
@@ -370,12 +371,10 @@ int launch(char *cmd)
         char *token = strtok(cmd_copy, "&"); // Split the input by "&"
         int foreground = 0; // Flag to track whether a command is foreground or background
 
-        while (token != NULL)
-        {
+        while (token != NULL) {
             // Trim leading and trailing whitespace from the token
             trim_whitespace(token);
-            if (create_process_and_run(token, foreground) == -1)
-            {
+            if (create_process_and_run(token, foreground) == -1) {
                 fprintf(stderr, "Error launching command: %s\n", token);
                 return 1;
             }
@@ -385,10 +384,8 @@ int launch(char *cmd)
             token = strtok(NULL, "&");
         }
     }
-    else
-    {
-        if (create_process_and_run(cmd, 0) == -1)
-        {
+    else {
+        if (create_process_and_run(cmd, 0) == -1) {
             fprintf(stderr, "Error launching command: %s\n", cmd);
             return 1;
         }
@@ -397,19 +394,15 @@ int launch(char *cmd)
 }
 
 // Function to display command history
-void display_history()
-{
+void display_history() {
     printf("\nCommand History:\n");
-    for (int i = 0; i < history_count; i++)
-    {
+    for (int i = 0; i < history_count; i++) {
         printf("[%d] PID: %d - %s\n", i + 1, history[i].pid, history[i].cmd);
         printf("Start Time: %s", ctime(&history[i].start_time));
-        if (history[i].background)
-        {
+        if (history[i].background) {
             printf("Background Process\n");
         }
-        else
-        {
+        else {
             printf("Execution Duration: %ld seconds\n", time(NULL) - history[i].start_time);
         }
         printf("\n"); // Add a newline for better formatting
