@@ -335,35 +335,39 @@ void shell_loop() {
 
     do {
         printf("aryan_parth@simpleShell:~$ "); // Branding - Jaatify ; )
-        if (fgets(input, sizeof(input), stdin) == NULL) {
+        // Taking INPUT from STDIN
+        if (fgets(input, sizeof(input), stdin) == NULL) { // The fgets function reads a line of input from stdin (standard input) and stores it in the input array. 
             perror("fgets error");
             exit(EXIT_FAILURE);
         }
-        input[strcspn(input, "\n")] = '\0';
+        
+        input[strcspn(input, "\n")] = '\0'; // The strcspn function finds the first occurrence of the newline character '\n' in the input and replaces it with the null terminator '\0'. 
+        // This effectively removes the newline character from the end of the input string.
 
         // Check for piping operator
-        char *pipe_ptr = strchr(input, '|');
+        char *pipe_ptr = strchr(input, '|'); // The strchr function searches for the first occurrence of the pipe character '|' in the input string and returns a pointer to it.
         if (pipe_ptr != NULL) {
-            status = execute_piped_commands(input);
+            status = execute_piped_commands(input); // Handles the execution of piped commands, and stores the return value in status.
         }
         else {
-            status = launch(input);
+            status = launch(input); //  the pipe character is not found, it calls launch(input), which handles the execution of a single command, and stores the return value in status.
         }
-    } while (status);
+    } while (status); //  If status is non-zero (indicating the shell should continue running), the loop repeats. 
+    // If status is zero (indicating the shell should exit), the loop terminates, and the shell program ends.
 }
 
 // Function to launch a command - Executes a command or special built-in commands (history, exit). 
 // Handles background commands denoted by &.
-int launch(char *cmd) {
-    if (strcmp(cmd, "history") == 0) {
+int launch(char *cmd) { // cmd  is a pointer to a character array (string) containing the command to be executed.
+    if (strcmp(cmd, "history") == 0) { // HISTORY Commnad - Calls the display_history function to display the command history.
         display_history();
     }
-    else if (strcmp(cmd, "exit") == 0) {
+    else if (strcmp(cmd, "exit") == 0) { // EXIT Command - Calls display_history to show the command history, prints a message indicating the shell has ended successfully, and returns 0 to indicate the shell should terminate.
         display_history();
         printf("\nShell ended successfully!\n");
         return 0;
     }
-    else if (strstr(cmd, "&") != NULL) {
+    else if (strstr(cmd, "&") != NULL) { // Background Process Command (&)
         char cmd_copy[MAX_SIZE];
         strncpy(cmd_copy, cmd, sizeof(cmd_copy)); // Create a copy of the original command
 
@@ -371,6 +375,11 @@ int launch(char *cmd) {
         char *token = strtok(cmd_copy, "&"); // Split the input by "&"
         int foreground = 0; // Flag to track whether a command is foreground or background
 
+        /*The while loop iterates over each tokenized command. 
+        It calls trim_whitespace to remove leading and trailing whitespace from the token. 
+        It then calls create_process_and_run to execute the tokenized command. 
+        If create_process_and_run returns -1, an error message is printed, and the function returns 1 to indicate failure. 
+        After the first command, foreground is set to 1 to indicate subsequent commands should run in the background.*/
         while (token != NULL) {
             // Trim leading and trailing whitespace from the token
             trim_whitespace(token);
@@ -381,19 +390,21 @@ int launch(char *cmd) {
             foreground = 1; // Set to 1 after the first command
 
             // Get the next token
-            token = strtok(NULL, "&");
+            token = strtok(NULL, "&"); // Continue tokenizing the next command until all commands are processed.
         }
-    }
+    } 
+ // Case : If the command does not contain &
     else {
         if (create_process_and_run(cmd, 0) == -1) {
             fprintf(stderr, "Error launching command: %s\n", cmd);
             return 1;
         }
     }
-    return 1;
+    return 1; // The function returns 1 to indicate that the shell should continue running.
 }
 
 // Function to display command history
+// Displays the history of commands executed, including their process IDs, start times, and execution duration.
 void display_history() {
     printf("\nCommand History:\n");
     for (int i = 0; i < history_count; i++) {
